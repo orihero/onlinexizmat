@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Sidebar from '../components/dashboard/Sidebar';
 import Header from '../components/dashboard/Header';
@@ -7,37 +7,31 @@ import CategoriesList from '../components/dashboard/categories/CategoriesList';
 import ServicesList from '../components/dashboard/services/ServicesList';
 import QuestionsList from '../components/dashboard/questions/QuestionsList';
 import OrdersList from '../components/dashboard/orders/OrdersList';
-
-type TabType = 'overview' | 'categories' | 'services' | 'questions' | 'orders';
+import OrderDetails from './OrderDetails';
+import CustomersList from '../components/dashboard/customers/CustomersList';
+import GroupsList from '../components/dashboard/groups/GroupsList';
+import ChatList from '../components/dashboard/chat/ChatList';
 
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<TabType>('overview');
   const { signOut } = useAuth();
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <Overview />;
-      case 'categories':
-        return <CategoriesList />;
-      case 'services':
-        return <ServicesList />;
-      case 'questions':
-        return <QuestionsList />;
-      case 'orders':
-        return <OrdersList />;
-      default:
-        return null;
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header onSignOut={signOut} />
-      <div className="flex">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        <main className="flex-1 p-6">
-          {renderContent()}
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Header onSignOut={signOut} />
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Overview />} />
+            <Route path="/chat" element={<ChatList />} />
+            <Route path="/categories" element={<CategoriesList />} />
+            <Route path="/services" element={<ServicesList />} />
+            <Route path="/questions" element={<QuestionsList />} />
+            <Route path="/orders" element={<OrdersList />} />
+            <Route path="/orders/:id" element={<OrderDetails />} />
+            <Route path="/customers" element={<CustomersList />} />
+            <Route path="/groups" element={<GroupsList />} />
+          </Routes>
         </main>
       </div>
     </div>

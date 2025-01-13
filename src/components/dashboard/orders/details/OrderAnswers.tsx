@@ -22,13 +22,16 @@ export default function OrderAnswers({ order, language = 'uz' }: OrderAnswersPro
     },
   });
 
-  if (!order.answers?.length) return null;
+  // Filter out answers that contain file data
+  const textAnswers = order.answers?.filter(answer => !answer.file_type);
+
+  if (!textAnswers?.length) return null;
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4">
       <h3 className="font-medium text-gray-900 mb-4">Customer Answers</h3>
       <div className="space-y-4">
-        {order.answers.map((answer, index) => {
+        {textAnswers.map((answer, index) => {
           const question = questions?.find(q => q.order === answer.question_index);
           
           return (

@@ -1,12 +1,19 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
+import { Search, Filter, Plus } from 'lucide-react';
 import QuestionForm from './QuestionForm';
-import { Question } from '../../../types/question';
+import {QuestionsTable}  from './QuestionsTable';
+import {QuestionFilters}  from './QuestionFilters';
 
 export default function QuestionsList() {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filters, setFilters] = useState({
+    status: 'all',
+    date: 'all',
+  });
 
   const { data: questions, isLoading } = useQuery({
     queryKey: ['questions'],
@@ -23,83 +30,54 @@ export default function QuestionsList() {
         .order('order', { ascending: true });
       
       if (error) throw error;
-      return data as Question[];
+      return data;
     },
   });
 
-  if (isLoading) return <div>Loading...</div>;
-
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Questions</h2>
-        <button
-          onClick={() => setIsFormOpen(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-        >
-          Add Question
-        </button>
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h1 className="text-2xl font-semibold mb-1">Questions</h1>
+          <p className="text-gray-500">Manage your service questions</p>
+        </div>
+        
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input 
+              type="text"
+              placeholder="Search questions..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg w-64"
+            />
+          </div>
+          
+          <button className="p-2 rounded-lg border border-gray-200">
+            <Filter className="w-4 h-4 text-gray-600" />
+          </button>
+          
+          <button 
+            onClick={() => setIsFormOpen(true)}
+            className="px-4 py-2 bg-orange-600 text-white rounded-lg flex items-center gap-2 hover:bg-orange-700"
+          >
+            <Plus className="w-4 h-4" />
+            Add Question
+          </button>
+        </div>
       </div>
 
-      <div className="bg-white shadow-md rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Order
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Question
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Service
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {questions?.map((question) => (
-              <tr key={question.id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {question.order}
-                </td>
-                <td className="px-6 py-4">
-                  <div>{question.question_uz}</div>
-                  <div className="text-sm text-gray-500">{question.question_ru}</div>
-                </td>
-                <td className="px-6 py-4">
-                  {question.services && (
-                    <>
-                      <div>{question.services.name_uz}</div>
-                      <div className="text-sm text-gray-500">{question.services.name_ru}</div>
-                    </>
-                  )}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
-                  <button
-                    onClick={() => setEditingQuestion(question)}
-                    className="text-indigo-600 hover:text-indigo-900 mr-4"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await supabase
-                        .from('questions')
-                        .delete()
-                        .eq('id', question.id);
-                    }}
-                    className="text-red-600 hover:text-red-900"
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <QuestionFilters filters={filters} onFilterChange={setFilters} />
+
+      <div className="bg-white rounded-xl border border-gray-100 mt-6">
+        <QuestionsTable 
+          questions={questions || []} 
+          isLoading={isLoading}
+          searchQuery={searchQuery}
+          filters={filters}
+          onEdit={setEditingQuestion}
+        />
       </div>
 
       {(isFormOpen || editingQuestion) && (

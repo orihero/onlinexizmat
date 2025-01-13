@@ -10,7 +10,7 @@ interface OrderDetailsModalProps {
   onClose: () => void;
 }
 
-export default function OrderDetailsModal({ order, onClose }: OrderDetailsModalProps) {
+export function OrderDetailsModal({ order, onClose }: OrderDetailsModalProps) {
   return (
     <SlideOver
       title="Order Details"

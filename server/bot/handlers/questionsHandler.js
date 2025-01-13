@@ -1,6 +1,5 @@
 import { supabase } from '../../lib/supabase.js';
-import { getQuestionKeyboard } from '../keyboards/questionKeyboard.js';
-import { messages } from '../utils/messages.js';
+import { getAnswerKeyboard } from '../keyboards/mainKeyboard.js';
 
 export async function handleQuestions(bot, query) {
   try {
@@ -14,39 +13,27 @@ export async function handleQuestions(bot, query) {
       .single();
     
     const language = user?.language || 'uz';
-    console.log('User language:', language);
 
     if (query.data.startsWith('start_service_')) {
       const serviceId = query.data.replace('start_service_', '');
-      console.log('Starting service questions:', serviceId);
       
       // Get questions for the service
-      const { data: questions, error: questionsError } = await supabase
+      const { data: questions } = await supabase
         .from('questions')
         .select('*')
         .eq('service_id', serviceId)
         .order('order');
 
-      if (questionsError) {
-        console.error('Error fetching questions:', questionsError);
-        throw questionsError;
-      }
-
-      console.log('Fetched questions:', JSON.stringify(questions, null, 2));
-
-      if (!questions || questions.length === 0) {
-        console.log('No questions found for service:', serviceId);
+      if (!questions?.length) {
         await bot.sendMessage(chatId, 'No questions available for this service.');
         return;
       }
 
-      // Start with the first question
+      // Show first question with answer keyboard
       const firstQuestion = questions[0];
-      const keyboard = getQuestionKeyboard(firstQuestion.type, language);
-      console.log('Generated question keyboard:', JSON.stringify(keyboard, null, 2));
+      const keyboard = getAnswerKeyboard(language);
 
       await bot.sendMessage(chatId, firstQuestion[`question_${language}`], {
-        parse_mode: 'HTML',
         reply_markup: keyboard
       });
 
@@ -61,7 +48,7 @@ export async function handleQuestions(bot, query) {
         });
     }
   } catch (error) {
-    console.error('Error in questions handler:', error.message, error.stack);
+    console.error('Error in questions handler:', error);
     await bot.sendMessage(chatId, 'An error occurred. Please try again.');
   }
 }

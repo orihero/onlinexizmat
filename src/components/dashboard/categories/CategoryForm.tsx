@@ -3,10 +3,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
-import { Category } from '../../../types/category';
 import SlideOver from '../../ui/SlideOver';
-import FormSelect from '../../ui/FormSelect';
 import FormInput from '../../ui/FormInput';
+import FormSelect from '../../ui/FormSelect';
+import Button from '../../ui/Button';
+import ButtonGroup from '../../ui/ButtonGroup';
 
 const categorySchema = z.object({
   name_uz: z.string().min(1, 'Name in Uzbek is required'),
@@ -17,7 +18,7 @@ const categorySchema = z.object({
 type CategoryFormData = z.infer<typeof categorySchema>;
 
 interface CategoryFormProps {
-  category?: Category | null;
+  category?: any;
   onClose: () => void;
 }
 
@@ -37,7 +38,7 @@ export default function CategoryForm({ category, onClose }: CategoryFormProps) {
     },
   });
 
-  const { register, handleSubmit, formState: { errors } } = useForm<CategoryFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
     defaultValues: category || {
       name_uz: '',
@@ -47,19 +48,23 @@ export default function CategoryForm({ category, onClose }: CategoryFormProps) {
   });
 
   const onSubmit = async (data: CategoryFormData) => {
-    if (category) {
-      await supabase
-        .from('categories')
-        .update(data)
-        .eq('id', category.id);
-    } else {
-      await supabase
-        .from('categories')
-        .insert([data]);
+    try {
+      if (category) {
+        await supabase
+          .from('categories')
+          .update(data)
+          .eq('id', category.id);
+      } else {
+        await supabase
+          .from('categories')
+          .insert([data]);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      onClose();
+    } catch (error) {
+      console.error('Error saving category:', error);
     }
-    
-    queryClient.invalidateQueries({ queryKey: ['categories'] });
-    onClose();
   };
 
   return (
@@ -93,21 +98,22 @@ export default function CategoryForm({ category, onClose }: CategoryFormProps) {
           ))}
         </FormSelect>
 
-        <div className="flex justify-end gap-4">
-          <button
+        <ButtonGroup>
+          <Button
             type="button"
+            variant="secondary"
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
-            className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700"
+            variant="primary"
+            isLoading={isSubmitting}
           >
             {category ? 'Update' : 'Create'}
-          </button>
-        </div>
+          </Button>
+        </ButtonGroup>
       </form>
     </SlideOver>
   );

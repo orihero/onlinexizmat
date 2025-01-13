@@ -11,7 +11,6 @@ import QuestionTypeSelect from './form/QuestionTypeSelect';
 import ServiceSelect from './form/ServiceSelect';
 import FileTypeSelect, { FileType, getExtensionsForFileTypes } from './form/FileTypeSelect';
 import Button from '../../ui/Button';
-import ButtonGroup from '../../ui/ButtonGroup';
 
 const questionSchema = z.object({
   service_id: z.string().min(1, 'Service is required'),
@@ -97,56 +96,58 @@ export default function QuestionForm({ question, onClose }: QuestionFormProps) {
       isOpen={true}
       onClose={onClose}
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <ServiceSelect
-          value={watch('service_id')}
-          onChange={(value) => setValue('service_id', value)}
-          error={errors.service_id?.message}
-        />
-
-        <QuestionTypeSelect
-          value={watch('type')}
-          onChange={(value) => setValue('type', value as QuestionType)}
-          error={errors.type?.message}
-        />
-
-        <FormInput
-          type="number"
-          label="Order"
-          error={errors.order?.message}
-          {...register('order', { valueAsNumber: true })}
-        />
-
-        <FormInput
-          type="number"
-          label="Additional Price"
-          error={errors.price?.message}
-          {...register('price', { valueAsNumber: true })}
-        />
-
-        <FormTextarea
-          label="Question (Uzbek)"
-          error={errors.question_uz?.message}
-          rows={4}
-          {...register('question_uz')}
-        />
-
-        <FormTextarea
-          label="Question (Russian)"
-          error={errors.question_ru?.message}
-          rows={4}
-          {...register('question_ru')}
-        />
-
-        {questionType === 'file' && (
-          <FileTypeSelect
-            value={watch('file_types') || []}
-            onChange={(types) => setValue('file_types', types)}
-            error={errors.file_types?.message}
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full">
+        <div className="flex-1 space-y-6">
+          <ServiceSelect
+            value={watch('service_id')}
+            onChange={(value) => setValue('service_id', value)}
+            error={errors.service_id?.message}
           />
-        )}
 
-        <ButtonGroup>
+          <QuestionTypeSelect
+            value={watch('type')}
+            onChange={(value) => setValue('type', value as QuestionType)}
+            error={errors.type?.message}
+          />
+
+          <FormInput
+            type="number"
+            label="Order"
+            error={errors.order?.message}
+            {...register('order', { valueAsNumber: true })}
+          />
+
+          <FormInput
+            type="number"
+            label="Additional Price"
+            error={errors.price?.message}
+            {...register('price', { valueAsNumber: true })}
+          />
+
+          <FormTextarea
+            label="Question (Uzbek)"
+            error={errors.question_uz?.message}
+            rows={4}
+            {...register('question_uz')}
+          />
+
+          <FormTextarea
+            label="Question (Russian)"
+            error={errors.question_ru?.message}
+            rows={4}
+            {...register('question_ru')}
+          />
+
+          {questionType === 'file' && (
+            <FileTypeSelect
+              value={watch('file_types') || []}
+              onChange={(types) => setValue('file_types', types)}
+              error={errors.file_types?.message}
+            />
+          )}
+        </div>
+
+        <div className="flex justify-end gap-4 pt-6 mt-6 border-t">
           <Button
             type="button"
             variant="secondary"
@@ -161,7 +162,7 @@ export default function QuestionForm({ question, onClose }: QuestionFormProps) {
           >
             {question ? 'Update' : 'Create'}
           </Button>
-        </ButtonGroup>
+        </div>
       </form>
     </SlideOver>
   );
