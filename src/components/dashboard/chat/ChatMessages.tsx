@@ -111,28 +111,6 @@ export function ChatMessages({ user }: ChatMessagesProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 bg-white border-b border-gray-100">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center">
-            <span className="text-orange-600 font-medium">
-              {user.first_name ? user.first_name[0].toUpperCase() : '#'}
-            </span>
-          </div>
-          <div>
-            <div className="font-medium">
-              {[user.first_name, user.last_name].filter(Boolean).join(' ') || 'Anonymous'}
-            </div>
-            {user.username && (
-              <div className="text-sm text-gray-600">@{user.username}</div>
-            )}
-            <div className="text-sm text-gray-500">
-              {user.phone_number || 'No phone number'}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages?.map((msg) => (

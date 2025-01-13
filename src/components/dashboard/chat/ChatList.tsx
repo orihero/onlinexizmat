@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { Search } from 'lucide-react';
 import { ChatMessages } from './ChatMessages';
 import { ChatUserList } from './ChatUserList';
+import { ChatHeader } from './ChatHeader';
 
 export default function ChatList() {
   const [selectedUser, setSelectedUser] = useState(null);
@@ -51,7 +52,12 @@ export default function ChatList() {
       {/* Chat Messages */}
       <div className="flex-1 bg-gray-50">
         {selectedUser ? (
-          <ChatMessages user={selectedUser} />
+          <div className="flex flex-col h-full">
+            <ChatHeader user={selectedUser} />
+            <div className="flex-1 overflow-y-auto">
+              <ChatMessages user={selectedUser} />
+            </div>
+          </div>
         ) : (
           <div className="h-full flex items-center justify-center text-gray-500">
             Select a user to start chatting

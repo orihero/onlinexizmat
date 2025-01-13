@@ -3,11 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
 import { Search, Filter } from 'lucide-react';
 import { OrdersTable } from './OrdersTable';
-import {OrderFilters} from './OrderFilters';
-import {OrderDetailsModal} from './details/OrderDetailsModal';
+import { OrderFilters } from './OrderFilters';
 
 export default function OrdersList() {
-  const [selectedOrder, setSelectedOrder] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     status: 'all',
@@ -70,16 +68,8 @@ export default function OrdersList() {
           isLoading={isLoading}
           searchQuery={searchQuery}
           filters={filters}
-          onViewDetails={setSelectedOrder}
         />
       </div>
-
-      {selectedOrder && (
-        <OrderDetailsModal
-          order={selectedOrder}
-          onClose={() => setSelectedOrder(null)}
-        />
-      )}
     </div>
   );
 }

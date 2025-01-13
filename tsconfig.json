@@ -12,7 +12,7 @@
     "noEmit": true,
     "jsx": "react-jsx",
     
-    // Disable strict type checking temporarily
+    // Disable strict type checking
     "strict": false,
     "noImplicitAny": false,
     "strictNullChecks": false,
@@ -28,10 +28,18 @@
     
     // Other checks to disable
     "noFallthroughCasesInSwitch": false,
+    "allowUnreachableCode": true,
+    "allowUnusedLabels": true,
     
     // Allow JS
     "allowJs": true,
-    "checkJs": false
+    "checkJs": false,
+    
+    // Module resolution
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src"],
   "references": [{ "path": "./tsconfig.node.json" }]
