@@ -11,15 +11,41 @@ export default function ChatList() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const { data: users, isLoading } = useQuery({
-    queryKey: ['telegram_users'],
+    queryKey: ['telegram_users_with_orders'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get all users
+      const { data: users, error: usersError } = await supabase
         .from('telegram_users')
         .select('*')
         .order('created_at', { ascending: false });
       
-      if (error) throw error;
-      return data;
+      if (usersError) throw usersError;
+
+      // Then get their latest orders
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select(`
+          id,
+          telegram_user_id,
+          status,
+          created_at,
+          services (
+            name_uz,
+            name_ru
+          )
+        `)
+        .in('status', ['pending', 'paid', 'inprogress', 'delivered'])
+        .order('created_at', { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      // Map orders to users
+      const usersWithOrders = users.map(user => ({
+        ...user,
+        latest_order: orders.find(order => order.telegram_user_id === user.telegram_id)
+      }));
+      
+      return usersWithOrders;
     },
   });
 

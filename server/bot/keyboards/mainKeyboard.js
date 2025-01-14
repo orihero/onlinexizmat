@@ -23,24 +23,3 @@ export function getMainKeyboard(language) {
     resize_keyboard: true
   };
 }
-
-export function getAnswerKeyboard(language) {
-  const buttons = {
-    uz: {
-      confirm: "✅ Tasdiqlash",
-      cancel: "❌ Bekor qilish"
-    },
-    ru: {
-      confirm: "✅ Подтвердить",
-      cancel: "❌ Отменить"
-    }
-  };
-
-  return {
-    keyboard: [
-      [{ text: buttons[language].confirm }],
-      [{ text: buttons[language].cancel }]
-    ],
-    resize_keyboard: true
-  };
-}

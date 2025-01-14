@@ -1,6 +1,7 @@
 import { getMainKeyboard } from '../keyboards/mainKeyboard.js';
 import { messages } from '../utils/messages.js';
 import { supabase } from '../../lib/supabase.js';
+import { getCategoriesKeyboard } from '../keyboards/categoriesKeyboard.js';
 
 export async function handleContact(bot, msg) {
   const contact = msg.contact;
@@ -27,10 +28,23 @@ export async function handleContact(bot, msg) {
       .single();
 
     const language = user?.language || 'uz';
-    
+
+    // Send welcome message
     await bot.sendMessage(msg.chat.id, messages.contactReceived[language], {
       reply_markup: getMainKeyboard(language)
     });
+
+    // Get categories
+    const { data: categories } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name_' + language);
+
+    // Send categories list
+    await bot.sendMessage(msg.chat.id, messages.selectCategory[language], {
+      reply_markup: getCategoriesKeyboard(categories, language)
+    });
+
   } catch (error) {
     console.error('Error saving user information:', error);
     await bot.sendMessage(msg.chat.id, 'An error occurred. Please try again.');

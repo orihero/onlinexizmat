@@ -1,5 +1,5 @@
 // Define all possible order statuses
-export type OrderStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled';
+export type OrderStatus = 'pending' | 'paid' | 'inprogress' | 'delivered' | 'completed' | 'cancelled';
 
 export interface OrderAnswer {
   question_index: number;

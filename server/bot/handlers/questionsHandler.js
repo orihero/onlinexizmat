@@ -1,5 +1,5 @@
 import { supabase } from '../../lib/supabase.js';
-import { getAnswerKeyboard } from '../keyboards/mainKeyboard.js';
+import { getQuestionKeyboard } from '../keyboards/questionKeyboard.js';
 
 export async function handleQuestions(bot, query) {
   try {
@@ -31,7 +31,7 @@ export async function handleQuestions(bot, query) {
 
       // Show first question with answer keyboard
       const firstQuestion = questions[0];
-      const keyboard = getAnswerKeyboard(language);
+      const keyboard = getQuestionKeyboard(firstQuestion.type, language);
 
       await bot.sendMessage(chatId, firstQuestion[`question_${language}`], {
         reply_markup: keyboard

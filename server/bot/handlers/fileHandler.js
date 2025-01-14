@@ -1,17 +1,10 @@
 import { supabase } from '../../lib/supabase.js';
+import { getQuestionKeyboard } from '../keyboards/questionKeyboard.js';
+import { messages } from '../utils/messages.js';
 import axios from 'axios';
 
-export async function handleFile(bot, msg) {
+export async function handleFile(bot, msg, isReply = false) {
   try {
-    // Get user's current state
-    const { data: state } = await supabase
-      .from('user_service_state')
-      .select('*')
-      .eq('telegram_user_id', msg.from.id)
-      .single();
-
-    if (!state) return;
-
     let fileData;
 
     // Handle different types of messages
@@ -31,7 +24,6 @@ export async function handleFile(bot, msg) {
         original_name: msg.video.file_name
       };
     } else if (msg.video_note) {
-      // Handle circular video messages
       fileData = {
         file_id: msg.video_note.file_id,
         file_type: 'video/mp4',
@@ -39,7 +31,6 @@ export async function handleFile(bot, msg) {
         original_name: `video_note_${Date.now()}.mp4`
       };
     } else if (msg.voice) {
-      // Handle voice messages
       fileData = {
         file_id: msg.voice.file_id,
         file_type: 'audio/ogg',
@@ -60,60 +51,6 @@ export async function handleFile(bot, msg) {
         file_size: msg.document.file_size,
         original_name: msg.document.file_name
       };
-    } else if (msg.location) {
-      // Handle location directly without file upload
-      const answers = [...(state.answers || []), {
-        question_index: state.current_question_index,
-        answer: `Location: ${msg.location.latitude},${msg.location.longitude}`,
-        location: msg.location
-      }];
-
-      await supabase
-        .from('user_service_state')
-        .update({ answers })
-        .eq('telegram_user_id', msg.from.id);
-
-      // Send confirmation message
-      const { data: user } = await supabase
-        .from('telegram_users')
-        .select('language')
-        .eq('telegram_id', msg.from.id)
-        .single();
-
-      const language = user?.language || 'uz';
-      const confirmMessage = language === 'uz'
-        ? 'Javob saqlandi! Yana biror narsa yuborishingiz yoki tasdiqlash tugmasini bosishingiz mumkin.'
-        : 'Ответ сохранен! Вы можете отправить что-то еще или нажать кнопку подтверждения.';
-
-      await bot.sendMessage(msg.chat.id, confirmMessage);
-      return;
-    } else if (msg.contact) {
-      // Handle contact directly without file upload
-      const answers = [...(state.answers || []), {
-        question_index: state.current_question_index,
-        answer: `Contact: ${msg.contact.phone_number}`,
-        contact: msg.contact
-      }];
-
-      await supabase
-        .from('user_service_state')
-        .update({ answers })
-        .eq('telegram_user_id', msg.from.id);
-
-      // Send confirmation message
-      const { data: user } = await supabase
-        .from('telegram_users')
-        .select('language')
-        .eq('telegram_id', msg.from.id)
-        .single();
-
-      const language = user?.language || 'uz';
-      const confirmMessage = language === 'uz'
-        ? 'Javob saqlandi! Yana biror narsa yuborishingiz yoki tasdiqlash tugmasini bosishingiz mumkin.'
-        : 'Ответ сохранен! Вы можете отправить что-то еще или нажать кнопку подтверждения.';
-
-      await bot.sendMessage(msg.chat.id, confirmMessage);
-      return;
     }
 
     if (!fileData) {
@@ -121,66 +58,67 @@ export async function handleFile(bot, msg) {
       return;
     }
 
-    // Get file from Telegram
-    const fileInfo = await bot.getFile(fileData.file_id);
-    const fileUrl = `https://api.telegram.org/file/bot${process.env.TELEGRAM_BOT_TOKEN}/${fileInfo.file_path}`;
+    if (isReply && msg.reply_to_message) {
+      // For replies, just forward the file directly
+      await supabase
+        .from('messages')
+        .insert([{
+          telegram_user_id: msg.from.id,
+          content: fileData.file_id,
+          type: 'user',
+          status: 'sent',
+          reply_to_message_id: msg.reply_to_message.message_id,
+          file_type: fileData.file_type,
+          original_name: fileData.original_name,
+          file_size: fileData.file_size
+        }]);
+    } else {
+      // Handle regular service question file upload
+      const { data: state } = await supabase
+        .from('user_service_state')
+        .select('*')
+        .eq('telegram_user_id', msg.from.id)
+        .single();
 
-    // Download file
-    const response = await axios.get(fileUrl, { 
-      responseType: 'arraybuffer',
-      timeout: 30000,
-      maxContentLength: 20 * 1024 * 1024
-    });
+      if (!state) return;
 
-    // Generate unique filename
-    const timestamp = Date.now();
-    const originalName = fileData.original_name || fileInfo.file_path.split('/').pop();
-    const filename = `${msg.from.id}_${timestamp}_${originalName}`;
+      // Get current question details
+      const { data: questions } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('service_id', state.service_id)
+        .order('order');
 
-    // Upload to Supabase Storage
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('uploads')
-      .upload(filename, response.data, {
-        contentType: fileData.file_type,
-        cacheControl: '3600',
-        upsert: false
+      const currentQuestion = questions[state.current_question_index];
+
+      // Update state with answer including file_id
+      const answers = [...(state.answers || []), {
+        question_index: state.current_question_index,
+        answer: fileData.file_id,
+        file_type: fileData.file_type,
+        original_name: fileData.original_name,
+        file_size: fileData.file_size
+      }];
+
+      await supabase
+        .from('user_service_state')
+        .update({ answers })
+        .eq('telegram_user_id', msg.from.id);
+
+      // Get user language
+      const { data: user } = await supabase
+        .from('telegram_users')
+        .select('language')
+        .eq('telegram_id', msg.from.id)
+        .single();
+
+      const language = user?.language || 'uz';
+
+      // Send confirmation message
+      await bot.sendMessage(msg.chat.id, messages.answerSaved[language], {
+        reply_markup: getQuestionKeyboard(currentQuestion.type, language)
       });
-
-    if (uploadError) throw uploadError;
-
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('uploads')
-      .getPublicUrl(filename);
-
-    // Update state with answer
-    const answers = [...(state.answers || []), {
-      question_index: state.current_question_index,
-      answer: publicUrl,
-      file_type: fileData.file_type,
-      original_name: fileData.original_name,
-      file_size: fileData.file_size
-    }];
-
-    await supabase
-      .from('user_service_state')
-      .update({ answers })
-      .eq('telegram_user_id', msg.from.id);
-
-    // Send confirmation message
-    const { data: user } = await supabase
-      .from('telegram_users')
-      .select('language')
-      .eq('telegram_id', msg.from.id)
-      .single();
-
-    const language = user?.language || 'uz';
-    const confirmMessage = language === 'uz'
-      ? 'Javob saqlandi! Yana biror narsa yuborishingiz yoki tasdiqlash tugmasini bosishingiz mumkin.'
-      : 'Ответ сохранен! Вы можете отправить что-то еще или нажать кнопку подтверждения.';
-
-    await bot.sendMessage(msg.chat.id, confirmMessage);
-
+    }
   } catch (error) {
     console.error('Error handling file:', error);
     

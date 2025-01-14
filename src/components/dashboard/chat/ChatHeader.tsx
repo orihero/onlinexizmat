@@ -17,7 +17,7 @@ interface ChatHeaderProps {
 export function ChatHeader({ user }: ChatHeaderProps) {
   const navigate = useNavigate();
 
-  const { data: latestOrder } = useQuery({
+  const { data: latestOrder, isError } = useQuery({
     queryKey: ['latest-order', user.telegram_id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -32,11 +32,12 @@ export function ChatHeader({ user }: ChatHeaderProps) {
         .eq('telegram_user_id', user.telegram_id)
         .in('status', ['pending', 'paid', 'inprogress', 'delivered'])
         .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
       
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      // Return null if no orders found
+      if (error && error.code === 'PGRST116') return null;
+      if (error) throw error;
+      return data?.[0] || null;
     },
   });
 

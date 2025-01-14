@@ -27,6 +27,34 @@ export async function handleAnswer(bot, query) {
 
     const language = user?.language || 'uz';
 
+    // Handle yes/no answers
+    if (query.data === 'answer_yes' || query.data === 'answer_no') {
+      const answer = query.data === 'answer_yes' ? 'Yes' : 'No';
+      const answers = [...(state.answers || []), {
+        question_index: state.current_question_index,
+        answer
+      }];
+
+      await supabase
+        .from('user_service_state')
+        .update({
+          answers: answers,
+          updated_at: new Date().toISOString()
+        })
+        .eq('telegram_user_id', query.from.id);
+
+      const confirmMessage = language === 'uz'
+        ? 'Javob saqlandi! Tasdiqlash tugmasini bosing.'
+        : 'Ответ сохранен! Нажмите кнопку подтверждения.';
+
+      await bot.editMessageText(confirmMessage, {
+        chat_id: chatId,
+        message_id: query.message.message_id,
+        reply_markup: getQuestionKeyboard('text', language) // Use regular confirmation keyboard
+      });
+      return;
+    }
+
     // Handle confirmation
     if (query.data === 'confirm_answer') {
       // Get next question
@@ -83,6 +111,12 @@ export async function handleAnswer(bot, query) {
           message_id: query.message.message_id,
           reply_markup: { inline_keyboard: [] }
         });
+
+        // Show main menu
+        await bot.sendMessage(chatId, 
+          language === 'uz' ? 'Asosiy menyu:' : 'Главное меню:', {
+          reply_markup: getMainKeyboard(language)
+        });
       }
       return;
     }
@@ -104,33 +138,11 @@ export async function handleAnswer(bot, query) {
         message_id: query.message.message_id,
         reply_markup: { inline_keyboard: [] }
       });
-      return;
-    }
 
-    // Handle yes/no answers
-    if (query.data === 'answer_yes' || query.data === 'answer_no') {
-      const answer = query.data === 'answer_yes' ? 'Yes' : 'No';
-      const answers = [...(state.answers || []), {
-        question_index: state.current_question_index,
-        answer
-      }];
-
-      await supabase
-        .from('user_service_state')
-        .update({
-          answers: answers,
-          updated_at: new Date().toISOString()
-        })
-        .eq('telegram_user_id', query.from.id);
-
-      const confirmMessage = language === 'uz'
-        ? 'Javob saqlandi! Tasdiqlash tugmasini bosing.'
-        : 'Ответ сохранен! Нажмите кнопку подтверждения.';
-
-      await bot.editMessageText(confirmMessage, {
-        chat_id: chatId,
-        message_id: query.message.message_id,
-        reply_markup: getQuestionKeyboard('yes_no', language)
+      // Show main menu
+      await bot.sendMessage(chatId, 
+        language === 'uz' ? 'Asosiy menyu:' : 'Главное меню:', {
+        reply_markup: getMainKeyboard(language)
       });
       return;
     }

@@ -1,5 +1,6 @@
 import { supabase } from '../../lib/supabase.js';
-import { getMainKeyboard } from '../keyboards/mainKeyboard.js';
+import { getQuestionKeyboard } from '../keyboards/questionKeyboard.js';
+import { messages } from '../utils/messages.js';
 
 export async function handleText(bot, msg) {
   try {
@@ -28,8 +29,40 @@ export async function handleText(bot, msg) {
 
     if (!state) return;
 
-    // Rest of the existing code...
-    // (Keep all the existing state handling code)
+    // Get current question details
+    const { data: questions } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('service_id', state.service_id)
+      .order('order');
+
+    const currentQuestion = questions[state.current_question_index];
+    
+    // Save the answer
+    const answers = [...(state.answers || []), {
+      question_index: state.current_question_index,
+      answer: msg.text
+    }];
+
+    await supabase
+      .from('user_service_state')
+      .update({ answers })
+      .eq('telegram_user_id', msg.from.id);
+
+    // Get user language
+    const { data: user } = await supabase
+      .from('telegram_users')
+      .select('language')
+      .eq('telegram_id', msg.from.id)
+      .single();
+
+    const language = user?.language || 'uz';
+
+    // Send confirmation message with inline keyboard
+    await bot.sendMessage(msg.chat.id, messages.answerSaved[language], {
+      reply_markup: getQuestionKeyboard(currentQuestion.type, language)
+    });
+
   } catch (error) {
     console.error('Error in text handler:', error);
     await bot.sendMessage(msg.chat.id, 'An error occurred. Please try again.');

@@ -11,7 +11,9 @@ interface OrderStatusUpdateProps {
 
 const statusOptions: Array<{ value: OrderStatus; label: string }> = [
   { value: 'pending', label: 'Pending' },
-  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'inprogress', label: 'In Progress' },
+  { value: 'delivered', label: 'Delivered' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' }
 ];

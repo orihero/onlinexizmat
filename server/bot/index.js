@@ -46,13 +46,56 @@ export function initializeBot(bot) {
     }
   });
 
-  // Handle file uploads and media
-  bot.on('photo', (msg) => handleFile(bot, msg));
-  bot.on('document', (msg) => handleFile(bot, msg));
-  bot.on('voice', (msg) => handleFile(bot, msg));
-  bot.on('video_note', (msg) => handleFile(bot, msg)); // Circular video messages
-  bot.on('video', (msg) => handleFile(bot, msg));
-  bot.on('audio', (msg) => handleFile(bot, msg));
+  // Handle file uploads and media for both service questions and replies
+  bot.on('photo', async (msg) => {
+    if (msg.reply_to_message) {
+      // Handle reply with photo
+      await handleFile(bot, msg, true);
+    } else {
+      // Handle regular file upload for service questions
+      await handleFile(bot, msg);
+    }
+  });
+  
+  bot.on('document', async (msg) => {
+    if (msg.reply_to_message) {
+      await handleFile(bot, msg, true);
+    } else {
+      await handleFile(bot, msg);
+    }
+  });
+  
+  bot.on('voice', async (msg) => {
+    if (msg.reply_to_message) {
+      await handleFile(bot, msg, true);
+    } else {
+      await handleFile(bot, msg);
+    }
+  });
+  
+  bot.on('video_note', async (msg) => {
+    if (msg.reply_to_message) {
+      await handleFile(bot, msg, true);
+    } else {
+      await handleFile(bot, msg);
+    }
+  });
+  
+  bot.on('video', async (msg) => {
+    if (msg.reply_to_message) {
+      await handleFile(bot, msg, true);
+    } else {
+      await handleFile(bot, msg);
+    }
+  });
+  
+  bot.on('audio', async (msg) => {
+    if (msg.reply_to_message) {
+      await handleFile(bot, msg, true);
+    } else {
+      await handleFile(bot, msg);
+    }
+  });
 
   // Handle group events
   bot.on('new_chat_members', (msg) => handleGroupEvents(bot, msg));

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../../lib/supabase';
-import { Send, AlertCircle } from 'lucide-react';
+import { Send, AlertCircle, Image, Paperclip } from 'lucide-react';
 import { formatDate } from '../../../lib/utils';
+import { FilePreview } from './FilePreview';
 
 interface User {
   telegram_id: number;
@@ -21,6 +22,10 @@ interface Message {
   error_message?: string;
   telegram_message_id?: number;
   reply_to_message_id?: number;
+  file_type?: string;
+  file_url?: string;
+  original_name?: string;
+  file_size?: number;
 }
 
 interface ChatMessagesProps {
@@ -30,6 +35,8 @@ interface ChatMessagesProps {
 export function ChatMessages({ user }: ChatMessagesProps) {
   const [message, setMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
   const { data: messages } = useQuery({
@@ -88,45 +95,74 @@ export function ChatMessages({ user }: ChatMessagesProps) {
     }
   };
 
-  const getMessageStyles = (msg: Message) => {
-    const baseStyles = msg.type === 'admin'
-      ? 'bg-orange-500 text-white'
-      : 'bg-white border border-gray-200';
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    if (msg.status === 'failed') {
-      return 'bg-red-500 text-white';
+    try {
+      setIsUploading(true);
+
+      // Upload file to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `chat/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filePath);
+
+      // Create message with file
+      const { error: messageError } = await supabase
+        .from('messages')
+        .insert([{
+          telegram_user_id: user.telegram_id,
+          content: publicUrl,
+          type: 'admin',
+          status: 'pending',
+          file_type: file.type,
+          original_name: file.name,
+          file_size: file.size
+        }]);
+
+      if (messageError) throw messageError;
+
+      queryClient.invalidateQueries({ queryKey: ['messages', user.telegram_id] });
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      alert('Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
-
-    if (msg.status === 'pending') {
-      return 'bg-orange-400 text-white opacity-70';
-    }
-
-    return baseStyles;
-  };
-
-  // Find replied message
-  const findRepliedMessage = (replyId: number) => {
-    return messages?.find(m => m.telegram_message_id === replyId);
   };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages?.map((msg) => (
           <div
             key={msg.id}
             className={`flex ${msg.type === 'admin' ? 'justify-end' : 'justify-start'}`}
           >
-            <div className={`max-w-[70%] rounded-lg p-3 ${getMessageStyles(msg)}`}>
-              {msg.reply_to_message_id && (
-                <div className={`text-xs mb-1 ${
-                  msg.type === 'admin' ? 'text-orange-100' : 'text-gray-500'
-                }`}>
-                  Replying to: {findRepliedMessage(msg.reply_to_message_id)?.content}
-                </div>
+            <div className={`max-w-[70%] rounded-lg p-3 ${
+              msg.type === 'admin' 
+                ? 'bg-orange-500 text-white' 
+                : 'bg-white border border-gray-200'
+            }`}>
+              {msg.file_type ? (
+                <FilePreview message={msg} />
+              ) : (
+                <div>{msg.content}</div>
               )}
-              <div className="text-sm">{msg.content}</div>
               <div className="flex items-center gap-2 mt-1">
                 <div className={`text-xs ${
                   msg.type === 'admin' ? 'text-orange-100' : 'text-gray-500'
@@ -143,17 +179,11 @@ export function ChatMessages({ user }: ChatMessagesProps) {
                   </div>
                 )}
               </div>
-              {msg.error_message && (
-                <div className="text-xs text-red-200 mt-1">
-                  Error: {msg.error_message}
-                </div>
-              )}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Input */}
       <div className="p-4 bg-white border-t border-gray-100">
         <div className="flex items-center gap-2">
           <input
@@ -163,12 +193,26 @@ export function ChatMessages({ user }: ChatMessagesProps) {
             placeholder="Type a message..."
             className="flex-1 px-4 py-2 border border-gray-200 rounded-lg"
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            disabled={isSending}
+            disabled={isSending || isUploading}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileUpload}
+            accept="image/*,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           />
           <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading || isSending}
+            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+          >
+            <Paperclip className="w-5 h-5" />
+          </button>
+          <button
             onClick={handleSend}
-            disabled={!message.trim() || isSending}
-            className="p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!message.trim() || isSending || isUploading}
+            className="p-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50"
           >
             <Send className="w-5 h-5" />
           </button>
