@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Send, AlertCircle, Image, Paperclip } from 'lucide-react';
+import { Send, AlertCircle, Paperclip } from 'lucide-react';
 import { formatDate } from '../../../lib/utils';
 import { FilePreview } from './FilePreview';
+import { ChatMessage } from '../../../types/chat';
 
 interface User {
   telegram_id: number;
@@ -11,21 +12,6 @@ interface User {
   username: string;
   first_name: string;
   last_name: string;
-}
-
-interface Message {
-  id: string;
-  content: string;
-  type: 'admin' | 'user';
-  status: 'pending' | 'sent' | 'read' | 'failed';
-  created_at: string;
-  error_message?: string;
-  telegram_message_id?: number;
-  reply_to_message_id?: number;
-  file_type?: string;
-  file_url?: string;
-  original_name?: string;
-  file_size?: number;
 }
 
 interface ChatMessagesProps {
@@ -61,7 +47,7 @@ export function ChatMessages({ user }: ChatMessagesProps) {
         queryClient.invalidateQueries({ queryKey: ['messages', user.telegram_id] });
       }
 
-      return data as Message[];
+      return data as ChatMessage[];
     },
     refetchInterval: 3000
   });

@@ -1,16 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { FileIcon, ImageIcon, Music2Icon, VideoIcon, Download, ExternalLink } from 'lucide-react';
 import { formatFileSize } from '../../../lib/utils';
-
-interface Message {
-  content: string;
-  file_type: string;
-  original_name?: string;
-  file_size?: number;
-}
+import { ChatMessage } from '../../../types/chat';
 
 interface FilePreviewProps {
-  message: Message;
+  message: ChatMessage;
 }
 
 export function FilePreview({ message }: FilePreviewProps) {
